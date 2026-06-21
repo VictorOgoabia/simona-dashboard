@@ -12,13 +12,13 @@ export default async function ClientsPage() {
     supabase
       .from("clients")
       .select(
-        "id, first_name, last_name, phone, email, location, tag, notes, fit_notes, uk_size, height_cm, bust_in, waist_in, hip_in, high_hip_in, shoulder_in, sleeve_in, back_in, torso_in, created_at"
+        "id, first_name, last_name, phone, email, location, tag, gender, notes, fit_notes, uk_size, height_cm, shoulder, sleeve_length, sleeve_width, chest, tummy, waist, hip, thigh, pants_length, calf, shirt_length, bust, short_dress_length, long_dress_length, skirt_length, created_at"
       )
       .order("created_at", { ascending: false }),
     // Order history amount comes through orders_safe (admin sees it, Staff NULL).
     supabase
       .from("orders_safe")
-      .select("id, order_code, client_name, item, status, amount"),
+      .select("id, order_code, client_id, client_name, item, status, amount"),
   ]);
 
   return (

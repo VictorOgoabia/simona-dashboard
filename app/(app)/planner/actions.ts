@@ -30,7 +30,16 @@ export async function setTaskDone(id: string, done: boolean) {
 
 export async function deleteTask(id: string) {
   const supabase = await createSupabase();
-  const { error } = await supabase.from("tasks").delete().eq("id", id);
+  // .select() is fine here (tasks table, not the financial orders table) — it
+  // lets us confirm a row was actually removed and surface silent RLS failures.
+  const { data, error } = await supabase
+    .from("tasks")
+    .delete()
+    .eq("id", id)
+    .select("id");
   if (error) throw new Error(error.message);
+  if (!data || data.length === 0) {
+    throw new Error("Task was not deleted (not found or not permitted).");
+  }
   revalidatePath("/planner");
 }

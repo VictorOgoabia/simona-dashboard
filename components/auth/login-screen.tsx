@@ -12,8 +12,8 @@ import { createClient } from "@/lib/supabase/client";
 // The 6-digit PIN they type IS that account's Supabase password.
 // ---------------------------------------------------------------------------
 const ACCOUNTS: { label: string; email: string }[] = [
-  { label: "Simona (Admin)", email: "admin@simona.local" },
-  { label: "Staff", email: "user1@simona.local" },
+  { label: "Director", email: "admin@simona.local" },
+  { label: "Team Member", email: "user1@simona.local" },
 ];
 
 export function LoginScreen() {

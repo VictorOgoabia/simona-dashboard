@@ -13,13 +13,13 @@ export default async function OrdersPage() {
     supabase
       .from("orders_safe")
       .select(
-        "id, order_code, client_name, order_type, item, collection, amount, payment_status, order_date, due_date, status, assigned_to, notes, qc_note, ops_note"
+        "id, order_code, client_id, client_name, order_type, item, collection, amount, payment_status, order_date, due_date, status, assigned_to, notes, qc_note, ops_note, gender, shoulder, sleeve_length, sleeve_width, chest, tummy, waist, hip, thigh, pants_length, calf, shirt_length, bust, short_dress_length, long_dress_length, skirt_length"
       )
       .order("created_at", { ascending: false }),
     supabase
       .from("clients")
       .select(
-        "id, first_name, last_name, uk_size, height_cm, bust_in, waist_in, hip_in, high_hip_in, shoulder_in, sleeve_in, back_in, torso_in, fit_notes"
+        "id, first_name, last_name, gender, uk_size, height_cm, shoulder, sleeve_length, sleeve_width, chest, tummy, waist, hip, thigh, pants_length, calf, shirt_length, bust, short_dress_length, long_dress_length, skirt_length, fit_notes"
       ),
   ]);
 

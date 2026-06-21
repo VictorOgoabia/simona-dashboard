@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 
 import { createClient as createSupabase } from "@/lib/supabase/server";
 
-// Writable shape of a client row (everything except id / created_at).
+// Writable shape of a client row. The old generic *_in columns are intentionally
+// NOT included — they stay in the DB untouched (preserved), and the form edits
+// the new gender-specific measurement columns instead.
 export interface ClientInput {
   first_name: string;
   last_name: string;
@@ -12,18 +14,27 @@ export interface ClientInput {
   email: string;
   location: string;
   tag: string;
+  gender: string;
   notes: string;
   fit_notes: string;
   uk_size: string;
   height_cm: string;
-  bust_in: string;
-  waist_in: string;
-  hip_in: string;
-  high_hip_in: string;
-  shoulder_in: string;
-  sleeve_in: string;
-  back_in: string;
-  torso_in: string;
+  // gender-specific measurements (union of Man + Woman sets)
+  shoulder: string;
+  sleeve_length: string;
+  sleeve_width: string;
+  chest: string;
+  tummy: string;
+  waist: string;
+  hip: string;
+  thigh: string;
+  pants_length: string;
+  calf: string;
+  shirt_length: string;
+  bust: string;
+  short_dress_length: string;
+  long_dress_length: string;
+  skirt_length: string;
 }
 
 export async function createClientRecord(input: ClientInput) {

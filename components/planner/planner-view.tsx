@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   createTask,
@@ -36,12 +37,16 @@ const WD = [
 
 export function PlannerView({ tasks }: { tasks: TaskRow[] }) {
   const toast = useToast();
+  const router = useRouter();
   const [showAdd, setShowAdd] = useState(false);
-  // Optimistic done-overrides so the checkbox flips instantly.
-  const [optDone, setOptDone] = useState<Record<string, boolean>>({});
+  // Local copy so add/tick/delete update the UI instantly; re-synced to the
+  // server data whenever it changes (after a revalidation).
+  const [rows, setRows] = useState<TaskRow[]>(tasks);
   const [, startTransition] = useTransition();
 
-  const isDone = (t: TaskRow) => optDone[t.id] ?? t.done;
+  useEffect(() => setRows(tasks), [tasks]);
+
+  const isDone = (t: TaskRow) => t.done;
 
   const today = new Date();
   const sow = new Date(today);
@@ -59,38 +64,47 @@ export function PlannerView({ tasks }: { tasks: TaskRow[] }) {
   DAYS.forEach((d) => {
     g[d] = [];
   });
-  tasks.forEach((t) => {
+  rows.forEach((t) => {
     if (!t.due_date) return;
     const wd = WD[new Date(t.due_date).getDay()];
     if (g[wd]) g[wd].push(t);
   });
 
-  const dn = tasks.filter(isDone).length;
-  const tot = tasks.length;
+  const dn = rows.filter(isDone).length;
+  const tot = rows.length;
   const pct = tot ? Math.round((dn / tot) * 100) : 0;
 
   function tick(t: TaskRow, val: boolean) {
-    setOptDone((p) => ({ ...p, [t.id]: val }));
+    setRows((prev) =>
+      prev.map((r) => (r.id === t.id ? { ...r, done: val } : r))
+    );
     startTransition(async () => {
       try {
         await setTaskDone(t.id, val);
       } catch {
-        setOptDone((p) => {
-          const n = { ...p };
-          delete n[t.id];
-          return n;
-        });
+        setRows((prev) =>
+          prev.map((r) => (r.id === t.id ? { ...r, done: !val } : r))
+        );
         toast({ title: "Could not update task", variant: "error" });
       }
     });
   }
 
   function remove(t: TaskRow) {
+    const snapshot = rows;
+    // Optimistically drop it from the UI.
+    setRows((prev) => prev.filter((r) => r.id !== t.id));
     startTransition(async () => {
       try {
         await deleteTask(t.id);
-      } catch {
-        toast({ title: "Could not delete task", variant: "error" });
+        toast({ title: "Task deleted", variant: "success" });
+        router.refresh();
+      } catch (e) {
+        setRows(snapshot); // restore on failure
+        toast({
+          title: "Could not delete task: " + (e as Error).message,
+          variant: "error",
+        });
       }
     });
   }
@@ -140,7 +154,13 @@ export function PlannerView({ tasks }: { tasks: TaskRow[] }) {
                 <div
                   className="kcard"
                   key={t.id}
-                  style={{ display: "flex", gap: 8, alignItems: "flex-start" }}
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    alignItems: "flex-start",
+                    position: "relative",
+                    paddingRight: 36,
+                  }}
                 >
                   <input
                     type="checkbox"
@@ -153,11 +173,13 @@ export function PlannerView({ tasks }: { tasks: TaskRow[] }) {
                       flexShrink: 0,
                     }}
                   />
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       style={{
                         fontSize: 12,
                         fontWeight: 500,
+                        overflowWrap: "anywhere",
+                        wordBreak: "break-word",
                         textDecoration: isDone(t) ? "line-through" : undefined,
                         color: isDone(t) ? "var(--nt)" : undefined,
                       }}
@@ -197,7 +219,18 @@ export function PlannerView({ tasks }: { tasks: TaskRow[] }) {
                   </div>
                   <button
                     className="btn bg sm"
-                    style={{ padding: "3px 6px", flexShrink: 0 }}
+                    aria-label="Delete task"
+                    style={{
+                      position: "absolute",
+                      top: 6,
+                      right: 6,
+                      width: 30,
+                      height: 28,
+                      padding: 0,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
                     onClick={() => remove(t)}
                   >
                     <i className="ti ti-x" />
@@ -231,7 +264,7 @@ const TASK_INIT = {
   task: "",
   due_date: "",
   pillar: "Production",
-  assigned_to: "Simona",
+  assigned_to: "Director",
   priority: "Normal",
 };
 
@@ -292,6 +325,7 @@ function AddTaskModal({ onClose }: { onClose: () => void }) {
             <Field label="Pillar">
               <select className="fi" value={v.pillar} onChange={set("pillar")}>
                 <option>Production</option>
+                <option>QC/Fulfilment</option>
                 <option>Content and Marketing</option>
                 <option>Client Relations</option>
                 <option>Operations</option>
@@ -301,9 +335,11 @@ function AddTaskModal({ onClose }: { onClose: () => void }) {
             </Field>
             <Field label="Assigned To">
               <select className="fi" value={v.assigned_to} onChange={set("assigned_to")}>
-                <option>Simona</option>
-                <option>Jennifer</option>
-                <option>Team</option>
+                <option>Director</option>
+                <option>Social Media Manager</option>
+                <option>QC/Fulfilment</option>
+                <option>Tailor</option>
+                <option>Rider</option>
               </select>
             </Field>
             <Field label="Priority">

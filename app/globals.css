@@ -127,9 +127,9 @@ textarea.fi{resize:vertical;min-height:70px;line-height:1.5}
 .itab{background:none;border:1px solid transparent;font-family:var(--font-body),sans-serif;font-size:12px;padding:6px 15px;border-radius:7px;cursor:pointer;color:var(--nt);transition:all 0.15s}
 .itab.active{background:var(--w);color:var(--midnight);font-weight:500;border-color:var(--bdr)}
 .kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:10px}
-.kcol{background:var(--linen-d);border-radius:10px;padding:12px;min-height:80px;border:1px solid rgba(196,168,130,0.15)}
+.kcol{background:var(--linen-d);border-radius:10px;padding:12px;min-height:80px;border:1px solid rgba(196,168,130,0.15);min-width:0}
 .kcolttl{font-size:10px;text-transform:uppercase;letter-spacing:0.09em;color:var(--nt);font-weight:500;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
-.kcard{background:var(--w);border-radius:8px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--bdr);cursor:pointer;transition:border-color 0.15s}
+.kcard{background:var(--w);border-radius:8px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--bdr);cursor:pointer;transition:border-color 0.15s;overflow:hidden;max-width:100%}
 .kcard:hover{border-color:var(--sand)}
 .kcardn{font-size:12px;font-weight:500;margin-bottom:4px}
 .kcardm{font-size:11px;color:var(--nt)}

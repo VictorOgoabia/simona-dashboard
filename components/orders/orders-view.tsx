@@ -9,16 +9,42 @@ import {
   updateOrderStatus,
   type NewOrderInput,
 } from "@/app/(app)/orders/actions";
+import { useShell } from "@/components/simona/shell-context";
 import { Field } from "@/components/ui-kit/field";
 import { Modal } from "@/components/ui-kit/modal";
 import { useConfirm } from "@/components/ui-kit/confirm";
 import { useToast } from "@/components/ui-kit/toast";
-import { STAGES, sb } from "@/lib/constants";
+import {
+  fieldsForGender,
+  STAGES,
+  sb,
+  type MeasurementKey,
+} from "@/lib/constants";
 import type { AppRole } from "@/lib/supabase/auth";
 
-export interface OrderRow {
+export interface MeasurementFields {
+  gender: string | null;
+  shoulder: string | null;
+  sleeve_length: string | null;
+  sleeve_width: string | null;
+  chest: string | null;
+  tummy: string | null;
+  waist: string | null;
+  hip: string | null;
+  thigh: string | null;
+  pants_length: string | null;
+  calf: string | null;
+  shirt_length: string | null;
+  bust: string | null;
+  short_dress_length: string | null;
+  long_dress_length: string | null;
+  skirt_length: string | null;
+}
+
+export interface OrderRow extends MeasurementFields {
   id: string;
   order_code: string | null;
+  client_id: string | null;
   client_name: string | null;
   order_type: string | null;
   item: string | null;
@@ -34,20 +60,12 @@ export interface OrderRow {
   ops_note: string | null;
 }
 
-export interface OrderClientRow {
+export interface OrderClientRow extends MeasurementFields {
   id: string;
   first_name: string;
   last_name: string;
   uk_size: string | null;
   height_cm: string | null;
-  bust_in: string | null;
-  waist_in: string | null;
-  hip_in: string | null;
-  high_hip_in: string | null;
-  shoulder_in: string | null;
-  sleeve_in: string | null;
-  back_in: string | null;
-  torso_in: string | null;
   fit_notes: string | null;
 }
 
@@ -274,15 +292,14 @@ export function OrdersView({
       {sel ? (
         <OrderDetail
           o={sel}
-          client={clients.find(
-            (c) => `${c.first_name} ${c.last_name}` === sel.client_name
-          )}
           isAdmin={isAdmin}
           onClose={() => setSelId(null)}
         />
       ) : null}
 
-      {showNew ? <NewOrderModal onClose={() => setShowNew(false)} /> : null}
+      {showNew ? (
+        <NewOrderModal clients={clients} onClose={() => setShowNew(false)} />
+      ) : null}
     </div>
   );
 }
@@ -291,12 +308,10 @@ export function OrdersView({
 
 function OrderDetail({
   o,
-  client,
   isAdmin,
   onClose,
 }: {
   o: OrderRow;
-  client?: OrderClientRow;
   isAdmin: boolean;
   onClose: () => void;
 }) {
@@ -507,24 +522,26 @@ function OrderDetail({
             </div>
           </div>
 
-          <MeasurementsBlock client={client} />
+          <MeasurementsBlock
+            heading="Order Measurements"
+            gender={o.gender}
+            values={o}
+          />
     </Modal>
   );
 }
 
-const MFIELDS: [string, keyof OrderClientRow][] = [
-  ["Bust", "bust_in"],
-  ["Waist", "waist_in"],
-  ["Hip", "hip_in"],
-  ["High Hip", "high_hip_in"],
-  ["Shoulder", "shoulder_in"],
-  ["Sleeve", "sleeve_in"],
-  ["Back", "back_in"],
-  ["Torso", "torso_in"],
-];
-
-function MeasurementsBlock({ client: c }: { client?: OrderClientRow }) {
-  const hm = c && (c.bust_in || c.waist_in || c.hip_in);
+function MeasurementsBlock({
+  heading,
+  gender,
+  values,
+}: {
+  heading: string;
+  gender: string | null;
+  values: Record<MeasurementKey, string | null>;
+}) {
+  const fields = fieldsForGender(gender);
+  const hm = fields.some(([, key]) => values[key]);
   return (
     <div
       style={{
@@ -548,101 +565,62 @@ function MeasurementsBlock({ client: c }: { client?: OrderClientRow }) {
           gap: 6,
         }}
       >
-        <i className="ti ti-ruler" style={{ fontSize: 13 }} /> Client Measurements
+        <i className="ti ti-ruler" style={{ fontSize: 13 }} /> {heading}
       </div>
-      {!c ? (
-        <span style={{ fontSize: 12, color: "var(--nt)" }}>
-          No client record matched - measurements unavailable.
-        </span>
-      ) : (
-        <>
-          <div style={{ fontSize: 11, color: "var(--nt)", marginBottom: 8 }}>
-            {c.first_name} {c.last_name} &middot; UK Size:{" "}
-            <strong style={{ color: "var(--midnight)" }}>
-              {c.uk_size || "Not recorded"}
-            </strong>
-            {c.height_cm ? (
-              <>
-                {" "}
-                &middot; Height:{" "}
-                <strong style={{ color: "var(--midnight)" }}>
-                  {c.height_cm}cm
-                </strong>
-              </>
-            ) : null}
-          </div>
-          {hm ? (
+      <div style={{ fontSize: 11, color: "var(--nt)", marginBottom: 8 }}>
+        Gender:{" "}
+        <strong style={{ color: "var(--midnight)" }}>
+          {gender || "Not set"}
+        </strong>
+        {gender ? (
+          <> &middot; SIMONA {gender === "Male" ? "Man" : "Woman"}</>
+        ) : null}
+      </div>
+      {hm ? (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4,1fr)",
+            gap: 6,
+          }}
+        >
+          {fields.map(([label, key]) => (
             <div
+              key={key}
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4,1fr)",
-                gap: 6,
-                marginBottom: 8,
-              }}
-            >
-              {MFIELDS.map(([label, key]) => (
-                <div
-                  key={label}
-                  style={{
-                    background: "white",
-                    borderRadius: 6,
-                    padding: "7px 9px",
-                    border: "1px solid rgba(196,168,130,0.25)",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 9,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.07em",
-                      color: "var(--nt)",
-                      marginBottom: 2,
-                    }}
-                  >
-                    {label}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 500,
-                      color: "var(--midnight)",
-                    }}
-                  >
-                    {c[key] ? `${c[key]} in` : "—"}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ fontSize: 12, color: "var(--nt)", marginBottom: 8 }}>
-              No full measurements on file - UK Size only.
-            </div>
-          )}
-          {c.fit_notes ? (
-            <div
-              style={{
-                fontSize: 11,
-                padding: "7px 10px",
                 background: "white",
                 borderRadius: 6,
+                padding: "7px 9px",
                 border: "1px solid rgba(196,168,130,0.25)",
-                lineHeight: 1.5,
               }}
             >
-              <span
+              <div
                 style={{
                   fontSize: 9,
                   textTransform: "uppercase",
                   letterSpacing: "0.07em",
                   color: "var(--nt)",
+                  marginBottom: 2,
                 }}
               >
-                Fit notes:{" "}
-              </span>
-              {c.fit_notes}
+                {label}
+              </div>
+              <div
+                style={{
+                  fontSize: 14,
+                  fontWeight: 500,
+                  color: "var(--midnight)",
+                }}
+              >
+                {values[key] ? `${values[key]} in` : "—"}
+              </div>
             </div>
-          ) : null}
-        </>
+          ))}
+        </div>
+      ) : (
+        <span style={{ fontSize: 12, color: "var(--nt)" }}>
+          No measurements recorded for this order.
+        </span>
       )}
     </div>
   );
@@ -652,7 +630,7 @@ function MeasurementsBlock({ client: c }: { client?: OrderClientRow }) {
 
 const ORDER_INIT = {
   order_type: "MTM (Made-to-Measure)",
-  client_name: "",
+  client_id: "",
   item: "",
   collection: "Soleil Collection",
   amount: "",
@@ -660,12 +638,36 @@ const ORDER_INIT = {
   order_date: "",
   due_date: "",
   status: "Inquiry",
-  assigned_to: "Simona",
+  assigned_to: "Director",
   notes: "",
+  // per-order gender + measurements (prefilled from the client, editable)
+  gender: "Female",
+  shoulder: "",
+  sleeve_length: "",
+  sleeve_width: "",
+  chest: "",
+  tummy: "",
+  waist: "",
+  hip: "",
+  thigh: "",
+  pants_length: "",
+  calf: "",
+  shirt_length: "",
+  bust: "",
+  short_dress_length: "",
+  long_dress_length: "",
+  skirt_length: "",
 };
 
-function NewOrderModal({ onClose }: { onClose: () => void }) {
+function NewOrderModal({
+  clients,
+  onClose,
+}: {
+  clients: OrderClientRow[];
+  onClose: () => void;
+}) {
   const toast = useToast();
+  const { goTo } = useShell();
   const [v, setV] = useState(ORDER_INIT);
   const [pending, startTransition] = useTransition();
   const set =
@@ -677,13 +679,43 @@ function NewOrderModal({ onClose }: { onClose: () => void }) {
     ) =>
       setV((p) => ({ ...p, [k]: e.target.value }));
 
+  // Selecting a client prefills gender + measurements (still editable).
+  function onClientChange(id: string) {
+    const c = clients.find((x) => x.id === id);
+    setV((p) => ({
+      ...p,
+      client_id: id,
+      gender: c?.gender || p.gender,
+      shoulder: c?.shoulder ?? "",
+      sleeve_length: c?.sleeve_length ?? "",
+      sleeve_width: c?.sleeve_width ?? "",
+      chest: c?.chest ?? "",
+      tummy: c?.tummy ?? "",
+      waist: c?.waist ?? "",
+      hip: c?.hip ?? "",
+      thigh: c?.thigh ?? "",
+      pants_length: c?.pants_length ?? "",
+      calf: c?.calf ?? "",
+      shirt_length: c?.shirt_length ?? "",
+      bust: c?.bust ?? "",
+      short_dress_length: c?.short_dress_length ?? "",
+      long_dress_length: c?.long_dress_length ?? "",
+      skirt_length: c?.skirt_length ?? "",
+    }));
+  }
+
   function save() {
-    if (!v.client_name.trim() || !v.item.trim() || !v.amount) {
-      toast({ title: "Client, item and amount are required.", variant: "error" });
+    const client = clients.find((c) => c.id === v.client_id);
+    if (!client || !v.item.trim() || !v.amount) {
+      toast({
+        title: "Select a client, and enter an item and amount.",
+        variant: "error",
+      });
       return;
     }
     const input: NewOrderInput = {
-      client_name: v.client_name.trim(),
+      client_id: client.id,
+      client_name: `${client.first_name} ${client.last_name}`,
       order_type: v.order_type,
       item: v.item.trim(),
       collection: v.collection,
@@ -694,6 +726,22 @@ function NewOrderModal({ onClose }: { onClose: () => void }) {
       status: v.status,
       assigned_to: v.assigned_to,
       notes: v.notes.trim(),
+      gender: v.gender,
+      shoulder: v.shoulder,
+      sleeve_length: v.sleeve_length,
+      sleeve_width: v.sleeve_width,
+      chest: v.chest,
+      tummy: v.tummy,
+      waist: v.waist,
+      hip: v.hip,
+      thigh: v.thigh,
+      pants_length: v.pants_length,
+      calf: v.calf,
+      shirt_length: v.shirt_length,
+      bust: v.bust,
+      short_dress_length: v.short_dress_length,
+      long_dress_length: v.long_dress_length,
+      skirt_length: v.skirt_length,
     };
     startTransition(async () => {
       try {
@@ -729,9 +777,33 @@ function NewOrderModal({ onClose }: { onClose: () => void }) {
                 <option>Ready-to-Ship</option>
               </select>
             </Field>
-            <Field label="Client Name *">
-              <input className="fi" placeholder="Client full name" value={v.client_name} onChange={set("client_name")} />
+            <Field label="Client *">
+              <select
+                className="fi"
+                value={v.client_id}
+                onChange={(e) => onClientChange(e.target.value)}
+              >
+                <option value="">Select a client…</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.first_name} {c.last_name}
+                  </option>
+                ))}
+              </select>
             </Field>
+            <div className="fg full">
+              <button
+                type="button"
+                className="btn bg sm"
+                onClick={() => {
+                  onClose();
+                  goTo("clients");
+                }}
+              >
+                <i className="ti ti-user-plus" /> Client not listed? Add them in
+                Clients first
+              </button>
+            </div>
             <Field label="Item / Style *">
               <input className="fi" placeholder="e.g. Soleil Wrap Dress - Burnt Orange" value={v.item} onChange={set("item")} />
             </Field>
@@ -770,8 +842,9 @@ function NewOrderModal({ onClose }: { onClose: () => void }) {
             </Field>
             <Field label="Assigned To">
               <select className="fi" value={v.assigned_to} onChange={set("assigned_to")}>
-                <option>Simona</option>
-                <option>Jennifer</option>
+                <option>Director</option>
+                <option>Social Media Manager</option>
+                <option>QC/Fulfilment</option>
                 <option>Tailor</option>
                 <option>Rider</option>
               </select>
@@ -779,6 +852,26 @@ function NewOrderModal({ onClose }: { onClose: () => void }) {
             <Field label="Notes" full>
               <textarea className="fi" placeholder="Fabric details, instructions, delivery address..." value={v.notes} onChange={set("notes")} />
             </Field>
+
+            <div className="fsec">
+              Measurements — SIMONA {v.gender === "Male" ? "Man" : "Woman"}
+            </div>
+            <Field label="Gender">
+              <select className="fi" value={v.gender} onChange={set("gender")}>
+                <option>Female</option>
+                <option>Male</option>
+              </select>
+            </Field>
+            <div className="fg" aria-hidden="true" />
+            {fieldsForGender(v.gender).map(([label, key]) => (
+              <Field key={key} label={`${label} (in)`}>
+                <input
+                  className="fi"
+                  value={v[key]}
+                  onChange={set(key)}
+                />
+              </Field>
+            ))}
           </div>
     </Modal>
   );

@@ -7,7 +7,7 @@ import { Field } from "@/components/ui-kit/field";
 import { Modal } from "@/components/ui-kit/modal";
 import { useConfirm } from "@/components/ui-kit/confirm";
 import { useToast } from "@/components/ui-kit/toast";
-import { sb } from "@/lib/constants";
+import { fieldsForGender, sb } from "@/lib/constants";
 import {
   createClientRecord,
   deleteClientRecord,
@@ -24,40 +24,39 @@ export interface ClientRow {
   email: string | null;
   location: string | null;
   tag: string | null;
+  gender: string | null;
   notes: string | null;
   fit_notes: string | null;
   uk_size: string | null;
   height_cm: string | null;
-  bust_in: string | null;
-  waist_in: string | null;
-  hip_in: string | null;
-  high_hip_in: string | null;
-  shoulder_in: string | null;
-  sleeve_in: string | null;
-  back_in: string | null;
-  torso_in: string | null;
+  // gender-specific measurements
+  shoulder: string | null;
+  sleeve_length: string | null;
+  sleeve_width: string | null;
+  chest: string | null;
+  tummy: string | null;
+  waist: string | null;
+  hip: string | null;
+  thigh: string | null;
+  pants_length: string | null;
+  calf: string | null;
+  shirt_length: string | null;
+  bust: string | null;
+  short_dress_length: string | null;
+  long_dress_length: string | null;
+  skirt_length: string | null;
   created_at: string;
 }
 
 export interface OrderRow {
   id: string;
   order_code: string | null;
+  client_id: string | null;
   client_name: string | null;
   item: string | null;
   status: string | null;
   amount: number | null;
 }
-
-const MFIELDS: [string, keyof ClientRow][] = [
-  ["Bust", "bust_in"],
-  ["Waist", "waist_in"],
-  ["Hip", "hip_in"],
-  ["High Hip", "high_hip_in"],
-  ["Shoulder", "shoulder_in"],
-  ["Sleeve", "sleeve_in"],
-  ["Back", "back_in"],
-  ["Torso", "torso_in"],
-];
 
 const fullName = (c: ClientRow) => `${c.first_name} ${c.last_name}`;
 
@@ -95,7 +94,11 @@ export function ClientsView({
   const sel = selId ? clients.find((c) => c.id === selId) : null;
 
   function ordersFor(c: ClientRow) {
-    return orders.filter((o) => o.client_name === fullName(c));
+    // Match on the real link (client_id). Fall back to name only for legacy
+    // rows that were never linked (client_id null).
+    return orders.filter((o) =>
+      o.client_id ? o.client_id === c.id : o.client_name === fullName(c)
+    );
   }
 
   async function onDelete(c: ClientRow) {
@@ -202,8 +205,8 @@ export function ClientsView({
                           {c.location || "-"}
                         </td>
                         <td>
-                          {c.bust_in
-                            ? `${c.bust_in}/${c.waist_in}/${c.hip_in}`
+                          {c.bust || c.chest
+                            ? `${c.bust || c.chest}/${c.waist || "-"}/${c.hip || "-"}`
                             : c.uk_size || "-"}
                         </td>
                         <td>
@@ -269,7 +272,8 @@ function ClientDetail({
   onDelete: () => void;
   onNewOrder: () => void;
 }) {
-  const hm = c.bust_in || c.waist_in || c.hip_in;
+  const fields = fieldsForGender(c.gender);
+  const hm = fields.some(([, key]) => c[key]);
 
   return (
     <div>
@@ -328,25 +332,35 @@ function ClientDetail({
         <div className="cardttl" style={{ marginBottom: 11 }}>
           Measurements
         </div>
-        {!hm ? (
-          <span className="muted">
-            UK Size on file: <strong>{c.uk_size || "Not recorded"}</strong>
-          </span>
+        <div style={{ fontSize: 12, color: "var(--nt)", marginBottom: 9 }}>
+          Gender:{" "}
+          <strong style={{ color: "var(--midnight)" }}>
+            {c.gender || "Not set"}
+          </strong>
+          {c.gender ? (
+            <> &middot; {c.gender === "Male" ? "SIMONA Man" : "SIMONA Woman"}</>
+          ) : null}{" "}
+          &middot; UK Size: {c.uk_size || "-"} &middot; Height:{" "}
+          {c.height_cm ? c.height_cm + "cm" : "-"}
+        </div>
+        {!c.gender ? (
+          <div className="ron" style={{ marginBottom: 9 }}>
+            <i className="ti ti-info-circle" style={{ fontSize: 14 }} /> Gender
+            not set — Edit this client to choose Male/Female. Any recorded values
+            are shown below.
+          </div>
+        ) : null}
+        {hm ? (
+          <div className="mgrid">
+            {fields.map(([label, key]) => (
+              <div className="mi" key={key}>
+                <div className="mik">{label}</div>
+                <div className="miv">{c[key] ? `${c[key]} in` : "-"}</div>
+              </div>
+            ))}
+          </div>
         ) : (
-          <>
-            <div style={{ fontSize: 12, color: "var(--nt)", marginBottom: 9 }}>
-              UK Size: {c.uk_size || "-"} &middot; Height:{" "}
-              {c.height_cm ? c.height_cm + "cm" : "-"}
-            </div>
-            <div className="mgrid">
-              {MFIELDS.map(([label, key]) => (
-                <div className="mi" key={label}>
-                  <div className="mik">{label}</div>
-                  <div className="miv">{c[key] ? `${c[key]} in` : "-"}</div>
-                </div>
-              ))}
-            </div>
-          </>
+          <span className="muted">No measurements recorded yet.</span>
         )}
         {c.fit_notes ? (
           <div
@@ -436,18 +450,26 @@ const FORM_INIT: ClientInput = {
   email: "",
   location: "",
   tag: "New",
+  gender: "Female",
   notes: "",
   fit_notes: "",
   uk_size: "",
   height_cm: "",
-  bust_in: "",
-  waist_in: "",
-  hip_in: "",
-  high_hip_in: "",
-  shoulder_in: "",
-  sleeve_in: "",
-  back_in: "",
-  torso_in: "",
+  shoulder: "",
+  sleeve_length: "",
+  sleeve_width: "",
+  chest: "",
+  tummy: "",
+  waist: "",
+  hip: "",
+  thigh: "",
+  pants_length: "",
+  calf: "",
+  shirt_length: "",
+  bust: "",
+  short_dress_length: "",
+  long_dress_length: "",
+  skirt_length: "",
 };
 
 function toForm(c: ClientRow): ClientInput {
@@ -458,18 +480,26 @@ function toForm(c: ClientRow): ClientInput {
     email: c.email ?? "",
     location: c.location ?? "",
     tag: c.tag ?? "New",
+    gender: c.gender ?? "Female",
     notes: c.notes ?? "",
     fit_notes: c.fit_notes ?? "",
     uk_size: c.uk_size ?? "",
     height_cm: c.height_cm ?? "",
-    bust_in: c.bust_in ?? "",
-    waist_in: c.waist_in ?? "",
-    hip_in: c.hip_in ?? "",
-    high_hip_in: c.high_hip_in ?? "",
-    shoulder_in: c.shoulder_in ?? "",
-    sleeve_in: c.sleeve_in ?? "",
-    back_in: c.back_in ?? "",
-    torso_in: c.torso_in ?? "",
+    shoulder: c.shoulder ?? "",
+    sleeve_length: c.sleeve_length ?? "",
+    sleeve_width: c.sleeve_width ?? "",
+    chest: c.chest ?? "",
+    tummy: c.tummy ?? "",
+    waist: c.waist ?? "",
+    hip: c.hip ?? "",
+    thigh: c.thigh ?? "",
+    pants_length: c.pants_length ?? "",
+    calf: c.calf ?? "",
+    shirt_length: c.shirt_length ?? "",
+    bust: c.bust ?? "",
+    short_dress_length: c.short_dress_length ?? "",
+    long_dress_length: c.long_dress_length ?? "",
+    skirt_length: c.skirt_length ?? "",
   };
 }
 
@@ -564,13 +594,21 @@ function ClientModal({
                 <option>Diaspora</option>
               </select>
             </Field>
+            <Field label="Gender">
+              <select className="fi" value={v.gender} onChange={set("gender")}>
+                <option>Female</option>
+                <option>Male</option>
+              </select>
+            </Field>
             <Field label="Notes" full>
               <textarea className="fi" placeholder="Style preferences, referral source..." value={v.notes} onChange={set("notes")} />
             </Field>
-            <div className="fsec">Body Measurements</div>
+            <div className="fsec">
+              Measurements — SIMONA {v.gender === "Male" ? "Man" : "Woman"}
+            </div>
             <Field label="UK Dress Size">
               <select className="fi" value={v.uk_size} onChange={set("uk_size")}>
-                <option value="">- if no full measurements -</option>
+                <option value="">- optional -</option>
                 <option>UK 6</option>
                 <option>UK 8</option>
                 <option>UK 10</option>
@@ -584,30 +622,15 @@ function ClientModal({
             <Field label="Height (cm)">
               <input className="fi" placeholder="165" value={v.height_cm} onChange={set("height_cm")} />
             </Field>
-            <Field label="Bust (in)">
-              <input className="fi" placeholder="36" value={v.bust_in} onChange={set("bust_in")} />
-            </Field>
-            <Field label="Waist (in)">
-              <input className="fi" placeholder="28" value={v.waist_in} onChange={set("waist_in")} />
-            </Field>
-            <Field label="Hip (in)">
-              <input className="fi" placeholder="40" value={v.hip_in} onChange={set("hip_in")} />
-            </Field>
-            <Field label="High Hip (in)">
-              <input className="fi" placeholder="36" value={v.high_hip_in} onChange={set("high_hip_in")} />
-            </Field>
-            <Field label="Shoulder (in)">
-              <input className="fi" placeholder="14.5" value={v.shoulder_in} onChange={set("shoulder_in")} />
-            </Field>
-            <Field label="Sleeve (in)">
-              <input className="fi" placeholder="23" value={v.sleeve_in} onChange={set("sleeve_in")} />
-            </Field>
-            <Field label="Back Length (in)">
-              <input className="fi" placeholder="15.5" value={v.back_in} onChange={set("back_in")} />
-            </Field>
-            <Field label="Torso / Full (in)">
-              <input className="fi" placeholder="58" value={v.torso_in} onChange={set("torso_in")} />
-            </Field>
+            {fieldsForGender(v.gender).map(([label, key]) => (
+              <Field key={key} label={`${label} (in)`}>
+                <input
+                  className="fi"
+                  value={v[key]}
+                  onChange={set(key)}
+                />
+              </Field>
+            ))}
             <Field label="Fit Notes" full>
               <textarea className="fi" placeholder="e.g. Extra ease at hips, narrow shoulders..." style={{ minHeight: 54 }} value={v.fit_notes} onChange={set("fit_notes")} />
             </Field>
