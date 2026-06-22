@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { requirePage } from "@/lib/guard";
 import { createClient } from "@/lib/supabase/server";
 
@@ -48,42 +50,38 @@ export default async function SettingsPage() {
             border: "1px solid rgba(196,168,130,0.25)",
           }}
         >
-          <div style={{ marginBottom: 8 }}>
+          <div style={{ marginBottom: 10 }}>
             <i
               className="ti ti-shield-lock"
               style={{ fontSize: 14, verticalAlign: -2, marginRight: 6, color: "var(--sand-dk)" }}
             />
-            Each person signs in with a 6-digit PIN. That PIN <strong>is</strong>{" "}
-            their Supabase account password — it is stored securely in Supabase
-            Auth, <strong>not in this app or your browser</strong>. For security,
-            PINs cannot be created or changed from this dashboard.
+            Each person signs in with their own 6-digit PIN — it&rsquo;s their
+            Supabase account password, stored securely in Supabase Auth,{" "}
+            <strong>not in this app or your browser</strong>. Everyone sets and
+            changes their <strong>own</strong> PIN; no one (not even an admin)
+            can see or set another person&rsquo;s permanent PIN.
           </div>
-          <div style={{ marginBottom: 6, fontWeight: 500 }}>
-            To change someone&rsquo;s PIN (admin task):
+          <Link className="btn bp" href="/set-pin">
+            <i className="ti ti-key" /> Change my PIN
+          </Link>
+          <div style={{ marginTop: 12, marginBottom: 6, fontWeight: 500 }}>
+            Adding a new team member (admin):
           </div>
           <ol style={{ margin: "0 0 8px 18px", padding: 0 }}>
             <li>
-              Open the Supabase dashboard &rarr; <strong>Authentication</strong>{" "}
-              &rarr; <strong>Users</strong>.
+              In Supabase &rarr; <strong>Authentication &rarr; Users</strong>,
+              create their account (e.g. <code>user2@simona.local</code>) with a{" "}
+              <strong>temporary</strong> 6-digit PIN, and share it privately.
             </li>
             <li>
-              Find the person&rsquo;s account (e.g.{" "}
-              <code>user1@simona.local</code>) and choose{" "}
-              <strong>Update / reset password</strong>.
+              Add them to the <code>ACCOUNTS</code> array in the login screen
+              config and redeploy.
             </li>
             <li>
-              Set the new <strong>6-digit</strong> PIN as the password and save.
-              It takes effect on their next sign-in.
+              On their first sign-in they&rsquo;re forced to set their own PIN —
+              the temporary one stops working.
             </li>
           </ol>
-          <div style={{ color: "var(--nt)", fontSize: 11 }}>
-            <i
-              className="ti ti-info-circle"
-              style={{ fontSize: 12, verticalAlign: -1, marginRight: 4 }}
-            />
-            To add a new team member, create their user in Supabase Auth and add
-            them to the account list in the login screen config.
-          </div>
         </div>
       </div>
 

@@ -12,6 +12,7 @@ export default async function AppLayout({
 }) {
   const session = await getSessionInfo();
   if (!session) redirect("/login");
+  if (session.mustChangePin) redirect("/set-pin");
 
   return (
     <AuthedShell

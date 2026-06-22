@@ -54,6 +54,16 @@ export async function updateOrderStatus(id: string, status: string) {
   revalidatePath("/orders");
 }
 
+export async function updateOrderPayment(id: string, payment_status: string) {
+  const supabase = await createSupabase();
+  const { error } = await supabase
+    .from("orders")
+    .update({ payment_status })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/orders");
+}
+
 export async function saveOrderOpsNote(id: string, ops_note: string) {
   const supabase = await createSupabase();
   const { error } = await supabase

@@ -6,6 +6,7 @@ import {
   createOrder,
   deleteOrder,
   saveOrderOpsNote,
+  updateOrderPayment,
   updateOrderStatus,
   type NewOrderInput,
 } from "@/app/(app)/orders/actions";
@@ -318,11 +319,24 @@ function OrderDetail({
   const toast = useToast();
   const confirm = useConfirm();
   const [stSel, setStSel] = useState(o.status ?? "Inquiry");
+  const [paySel, setPaySel] = useState(o.payment_status ?? "Unpaid");
   const [opsNote, setOpsNote] = useState(o.ops_note ?? "");
   const [saved, setSaved] = useState(false);
   const [, startTransition] = useTransition();
 
   const si = STAGES.indexOf(o.status ?? "");
+
+  function doSavePayment() {
+    startTransition(async () => {
+      try {
+        await updateOrderPayment(o.id, paySel);
+        toast({ title: "Payment status updated", variant: "success" });
+        onClose();
+      } catch {
+        toast({ title: "Could not update payment status", variant: "error" });
+      }
+    });
+  }
 
   function doUpdateStatus() {
     startTransition(async () => {
@@ -410,24 +424,14 @@ function OrderDetail({
               </span>
             </div>
             {isAdmin ? (
-              <>
-                <div className="irow">
-                  <span className="ikey">Amount</span>
-                  <span className="ival">
-                    {o.amount != null
-                      ? "N" + Number(o.amount).toLocaleString()
-                      : "-"}
-                  </span>
-                </div>
-                <div className="irow">
-                  <span className="ikey">Payment</span>
-                  <span className="ival">
-                    <span className={"bdg " + payClass(o.payment_status)}>
-                      {o.payment_status}
-                    </span>
-                  </span>
-                </div>
-              </>
+              <div className="irow">
+                <span className="ikey">Amount</span>
+                <span className="ival">
+                  {o.amount != null
+                    ? "N" + Number(o.amount).toLocaleString()
+                    : "-"}
+                </span>
+              </div>
             ) : null}
             <div className="irow">
               <span className="ikey">Order Date</span>
@@ -494,6 +498,45 @@ function OrderDetail({
               ) : null}
             </div>
           </div>
+
+          {isAdmin ? (
+            <div style={{ marginBottom: 13 }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 500,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.07em",
+                  color: "var(--nt)",
+                  marginBottom: 6,
+                }}
+              >
+                Payment Status
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
+                <select
+                  className="fi"
+                  style={{ flex: 1, minWidth: 145 }}
+                  value={paySel}
+                  onChange={(e) => setPaySel(e.target.value)}
+                >
+                  <option>Unpaid</option>
+                  <option>50% Deposit</option>
+                  <option>Paid in Full</option>
+                </select>
+                <button className="btn bg" onClick={doSavePayment}>
+                  Save Payment Status
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           <div>
             <div

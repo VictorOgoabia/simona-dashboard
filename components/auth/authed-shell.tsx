@@ -94,6 +94,15 @@ export function AuthedShell({
 
             <div className="tbr">
               <span className={pill.cls}>{pill.label}</span>
+              <Link
+                href="/set-pin"
+                className="lgbtn"
+                title="Change PIN"
+                aria-label="Change PIN"
+              >
+                <i className="ti ti-key" style={{ fontSize: 13 }} />
+                <span className="lgtxt">PIN</span>
+              </Link>
               <button className="lgbtn" onClick={signOut}>
                 <i className="ti ti-logout" style={{ fontSize: 13 }} />
                 <span className="lgtxt">Logout</span>

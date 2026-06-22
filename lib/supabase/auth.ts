@@ -7,6 +7,7 @@ export interface SessionInfo {
   email: string | null;
   role: AppRole;
   displayName: string | null;
+  mustChangePin: boolean;
 }
 
 /**
@@ -23,7 +24,7 @@ export async function getSessionInfo(): Promise<SessionInfo | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, display_name")
+    .select("role, display_name, must_change_pin")
     .eq("id", user.id)
     .single();
 
@@ -32,5 +33,6 @@ export async function getSessionInfo(): Promise<SessionInfo | null> {
     email: user.email ?? null,
     role: profile?.role === "admin" ? "admin" : "user",
     displayName: profile?.display_name ?? null,
+    mustChangePin: profile?.must_change_pin === true,
   };
 }
